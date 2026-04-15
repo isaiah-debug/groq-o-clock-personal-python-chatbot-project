@@ -4,13 +4,11 @@
 [![integration-test](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml)
 [![flake8](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/flake8.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/flake8.yml)
 [![coverage](https://img.shields.io/badge/coverage-%3E90%25-brightgreen)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml)
-[![PyPI](https://img.shields.io/pypi/v/cmc-csci040-isaiah-bingham-docsum)](https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/)
+[![PyPI](https://img.shields.io/badge/pypi-not%20published-lightgrey)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project)
 
 DocChat is a terminal assistant for asking questions about files in the current folder. It can use `calculate`, `ls`, `cat`, and `grep` automatically, or you can run them directly with slash commands.
 
 ![demo](demo.gif)
-
-PyPI: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
 
 ```text
 $ chat
