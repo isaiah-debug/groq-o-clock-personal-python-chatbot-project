@@ -22,32 +22,29 @@ chat> /calculate 6 * 7
 
 ## Test Projects
 
-### Webpage
-
 ```text
 $ cd test_projects/webpage
 $ chat
 chat> what does this project do?
+This is a personal portfolio website built with HTML and CSS.
 ```
 
-This is useful because the tool can read project files before answering.
-
-### Markdown Compiler
+This is useful because the tool reads project files and summarizes them without any manual commands.
 
 ```text
 $ cd test_projects/markdown_compiler
 $ chat
 chat> does this project use regular expressions?
+No, I grepped all .py files and found no imports of the `re` module.
 ```
 
-This is useful because the tool can search source files with `grep`.
-
-### eBay Scraper
+This is useful because the tool automatically searches source files with grep to answer code questions.
 
 ```text
 $ cd test_projects/ebay_scraper
 $ chat
 chat> tell me about this project
+This project scrapes eBay listings and extracts product titles and prices using BeautifulSoup.
 ```
 
-This is useful because the tool can summarize project documentation.
+This is useful because the tool reads the README and summarizes the project purpose automatically.

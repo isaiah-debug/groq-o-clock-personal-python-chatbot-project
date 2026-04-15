@@ -32,3 +32,13 @@ jobs:
           echo "$output" | grep 'sample.txt'
           echo "$output" | grep 'DocChat docs'
           echo "$output" | grep 'needle line'
+
+      - name: Run LLM auto tool-call integration test
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          mkdir -p itest
+          printf 'DocChat docs\nneedle line\n' > itest/sample.txt
+          output="$(echo 'what files are in the itest folder?' | chat)"
+          echo "$output"
+          echo "$output" | grep -i 'sample'
