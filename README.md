@@ -1,4 +1,4 @@
-# DocChat
+# Groq O' Clock
 
 [![doctest](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml)
 [![integration-test](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml)
@@ -6,7 +6,7 @@
 [![coverage](https://img.shields.io/badge/coverage-%3E90%25-brightgreen)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml)
 [![PyPI](https://img.shields.io/badge/pypi-not%20published-lightgrey)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project)
 
-DocChat is a terminal assistant for asking questions about files in the current folder. It can use `calculate`, `ls`, `cat`, and `grep` automatically, or you can run them directly with slash commands.
+Lets get to grokkin'
 
 ![demo](demo.gif)
 
