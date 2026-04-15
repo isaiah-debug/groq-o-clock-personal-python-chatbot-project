@@ -40,7 +40,10 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          test -n "$GROQ_API_KEY" || { echo "GROQ_API_KEY secret is required"; exit 1; }
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "GROQ_API_KEY secret is not set; skipping live Groq test."
+            exit 0
+          fi
           mkdir -p itest
           printf 'DocChat docs\nneedle line\n' > itest/sample.txt
           output="$(chat --debug 'Use the ls tool to list the files in the itest folder. Reply with the exact filename sample.txt.')"
