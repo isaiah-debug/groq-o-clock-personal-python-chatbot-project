@@ -97,7 +97,7 @@ class Chat:
 
         Class behavior is demonstrated in the class docstring.
         """
-        self.client = client or Groq()
+        self.client = client
         self.debug = debug
         self.messages = [
             {
@@ -156,6 +156,9 @@ class Chat:
 
         Class behavior is demonstrated in the class docstring.
         """
+        if self.client is None:
+            self.client = Groq()
+
         for _ in range(5):
             response = self.client.chat.completions.create(
                 messages=self.messages,
