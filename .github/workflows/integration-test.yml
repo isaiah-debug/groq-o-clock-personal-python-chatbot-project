@@ -24,6 +24,11 @@ jobs:
 
       - name: Run command line integration test
         run: |
-          output="$(printf '/calculate 2 + 3\n' | chat)"
+          mkdir -p itest
+          printf 'DocChat docs\nneedle line\n' > itest/sample.txt
+          output="$(printf '/calculate 2 + 3\n/ls itest\n/cat itest/sample.txt\n/grep needle itest/*.txt\n' | chat)"
           echo "$output"
-          echo "$output" | grep '5'
+          echo "$output" | grep 'chat> 5'
+          echo "$output" | grep 'sample.txt'
+          echo "$output" | grep 'DocChat docs'
+          echo "$output" | grep 'needle line'
