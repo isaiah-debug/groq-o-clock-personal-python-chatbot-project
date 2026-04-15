@@ -3,9 +3,13 @@ name: publish-pypi
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: pypi
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -24,7 +28,6 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI
-        run: twine upload dist/* --non-interactive
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
