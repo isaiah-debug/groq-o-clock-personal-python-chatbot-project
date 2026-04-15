@@ -29,3 +29,6 @@ jobs:
 
       - name: Report coverage
         run: coverage report -m
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
