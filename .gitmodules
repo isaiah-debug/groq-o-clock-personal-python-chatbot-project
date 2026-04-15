@@ -1,0 +1,9 @@
+[submodule "test_projects/webpage"]
+	path = test_projects/webpage
+	url = https://github.com/ibingham28-bit/ibingham28-bit.github.io.git
+[submodule "test_projects/markdown_compiler"]
+	path = test_projects/markdown_compiler
+	url = https://github.com/ibingham28-bit/m.git
+[submodule "test_projects/ebay_scraper"]
+	path = test_projects/ebay_scraper
+	url = https://github.com/ibingham28-bit/project_02_webscraper.git
