@@ -6,13 +6,28 @@
 [![coverage](https://img.shields.io/badge/coverage-%3E90%25-brightgreen)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml)
 [![PyPI](https://img.shields.io/pypi/v/cmc-csci040-isaiah-bingham-docsum)](https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/)
 
-DocChat is a command line assistant that can answer questions about files in the current folder. It can calculate, list files, read text files, and grep with regular expressions using either automatic tool calls or manual slash commands.
+Terminal chat for local documents using Groq plus safe tools.
 
-PyPI project page: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
+PyPI: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
+
+## Rubric Checklist
+
+- `chat.py` contains the main program.
+- `tools/` contains `calculate`, `ls`, `cat`, and `grep`.
+- Tools reject absolute paths and `..` traversal.
+- Manual slash commands work, for example `/ls`, `/cat`, `/grep`, and `/calculate`.
+- Automatic Groq tool calls are implemented in `Chat`.
+- Every function/class/file has docstrings and doctests where required.
+- Doctest coverage is above 90%; tool modules are covered at 100%.
+- GitHub Actions include doctest, integration-test, and flake8.
+- `pyproject.toml` and `requirements.txt` support install/build.
+- `.env`, `.coverage`, `.DS_Store`, caches, build files, and virtualenv files are ignored.
+- `test_projects/` exists for previous-project submodules.
+- README includes badges, PyPI link, usage examples, and a demo placeholder.
 
 ## Demo
 
-Add a terminal-only animated gif here after recording the final project demo.
+`demo.gif` goes here.
 
 ## Usage
 
@@ -22,11 +37,7 @@ chat> /ls .github
 workflows
 chat> /calculate 6 * 7
 42
-chat> what files are in the .github folder?
-The `.github` folder contains the `workflows` folder.
 ```
-
-This example is good because it demonstrates both manual slash commands and a follow-up question that can use previous tool output already in the conversation.
 
 ## Test Project Examples
 
@@ -34,34 +45,26 @@ This example is good because it demonstrates both manual slash commands and a fo
 $ cd test_projects/webpage
 $ chat
 chat> /cat README.md
-...
-chat> tell me what this website is about
-The README describes the purpose and structure of the website.
+chat> what is this project?
 ```
 
-This example is good because it shows how DocChat can read project documentation before answering.
+Good because it checks that DocChat can read project documentation.
 
 ```text
 $ cd test_projects/markdown_compiler
 $ chat
-chat> /grep 're\\.' '*.py'
-...
+chat> /grep 'import re' '*.py'
 chat> does this project use regular expressions?
-Yes. The grep output shows Python files using the `re` module.
 ```
 
-This example is good because it demonstrates source-code search with `grep`.
+Good because it checks source search with regular expressions.
 
 ```text
 $ cd test_projects/ebay_scraper
 $ chat
 chat> /ls
-README.md
-...
 chat> /cat README.md
-...
-chat> tell me about this project
-The README says this project scrapes product information from eBay.
+chat> what does this project do?
 ```
 
-This example is good because it combines directory listing and file reading.
+Good because it checks directory listing plus file reading.
