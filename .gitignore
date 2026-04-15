@@ -1,6 +1,7 @@
 .env
 venv
 .coverage
+coverage.xml
 htmlcov/
 .pytest_cache/
 __pycache__/
@@ -9,3 +10,4 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+*.code-workspace

@@ -1,4 +1,4 @@
-# Groq O' Clock
+# Groq O'Clock
 
 [![doctest](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/doctest.yml)
 [![integration-test](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml/badge.svg)](https://github.com/isaiah-debug/groq-o-clock-personal-python-chatbot-project/actions/workflows/integration-test.yml)
@@ -6,9 +6,11 @@
 [![coverage](https://codecov.io/gh/isaiah-debug/groq-o-clock-personal-python-chatbot-project/branch/main/graph/badge.svg)](https://codecov.io/gh/isaiah-debug/groq-o-clock-personal-python-chatbot-project)
 [![PyPI](https://img.shields.io/pypi/v/cmc-csci040-isaiah-bingham-docsum)](https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/)
 
-Lets get to grokkin'
+Groq O'Clock is a terminal chat tool for asking questions about local projects. It supports Groq tool calls plus direct slash commands for `calculate`, `ls`, `cat`, and `grep`.
 
 ![demo](demo.gif)
+
+PyPI: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
 
 ```text
 $ chat
@@ -20,35 +22,32 @@ chat> /calculate 6 * 7
 
 ## Test Projects
 
-### Webpage Project
+### Webpage
 
 ```text
 $ cd test_projects/webpage
 $ chat
 chat> what does this project do?
-This project creates a personal website. It contains HTML, CSS, and JavaScript files that build a responsive portfolio site.
 ```
 
-This example demonstrates the chat tool reading and comprehending project documentation automatically through the `cat` tool.
+This is useful because the tool can read project files before answering.
 
-### Markdown Compiler Project
+### Markdown Compiler
 
 ```text
 $ cd test_projects/markdown_compiler
 $ chat
 chat> does this project use regular expressions?
-No, I searched all .py files and found no imports of the `re` module.
 ```
 
-This example shows the LLM using the `grep` tool automatically to search for regex imports across the project, proving it can reason about code patterns.
+This is useful because the tool can search source files with `grep`.
 
-### eBay Scraper Project
+### eBay Scraper
 
 ```text
 $ cd test_projects/ebay_scraper
 $ chat
 chat> tell me about this project
-This is a web scraper designed to extract product information from eBay listings, including titles, prices, and seller information.
 ```
 
-This example demonstrates the LLM reading and summarizing the project's README to give an accurate overview of the project's purpose.
+This is useful because the tool can summarize project documentation.
