@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmc-csci040-isaiah-bingham-docsum"
+version = "0.1.0"
+description = "A tiny Groq-powered pirate chat program for class doctest and packaging practice."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "groq",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "flake8",
+    "pytest",
+    "build",
+    "twine",
+]
+
+[project.scripts]
+chat = "chat:main"
+
+[tool.setuptools]
+py-modules = ["chat"]
+packages = ["tools"]

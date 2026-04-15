@@ -1,0 +1,7 @@
+groq
+python-dotenv
+coverage
+flake8
+pytest
+build
+twine
