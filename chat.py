@@ -50,6 +50,7 @@ class Chat:
     The class keeps conversation history in `messages`, sends user messages to
     Groq, and handles any tool calls requested by the model.
 
+    >>> result = True
     >>> if live_doctests_enabled():
     ...     chat = Chat()
     ...     reply = chat.send_message(
@@ -57,23 +58,26 @@ class Chat:
     ...         'exact filename calculate.py.',
     ...         temperature=0.0,
     ...     )
-    ...     'calculate.py' in reply and any(
+    ...     result = 'calculate.py' in reply and any(
     ...         message.get('role') == 'tool'
     ...         and message.get('name') == 'ls'
     ...         for message in chat.messages
     ...     )
+    >>> result
     True
+    >>> result = True
     >>> if live_doctests_enabled():
     ...     chat = Chat()
     ...     _ = chat.send_message(
     ...         'Remember that my name is Isaiah. Reply with OK.',
     ...         temperature=0.0,
     ...     )
-    ...     'isaiah' in chat.send_message(
+    ...     result = 'isaiah' in chat.send_message(
     ...         'What name did I ask you to remember? Reply with just the '
     ...         'name.',
     ...         temperature=0.0,
     ...     ).lower()
+    >>> result
     True
     """
 
