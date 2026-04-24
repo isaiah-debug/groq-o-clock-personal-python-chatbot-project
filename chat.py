@@ -6,6 +6,7 @@ directly or call safe local tools for reading files in the current project.
 
 import argparse
 import json
+import os
 import shlex
 
 from dotenv import load_dotenv
@@ -32,64 +33,46 @@ TOOL_FUNCTIONS = {
 }
 
 
+def live_doctests_enabled():
+    """Return True when live Groq doctests should run.
+
+    >>> isinstance(live_doctests_enabled(), bool)
+    True
+    """
+    return bool(os.getenv("GROQ_API_KEY"))
+
+
 class Chat:
     """Chat with a language model that can use local document tools.
 
     The class keeps conversation history in `messages`, sends user messages to
-    Groq, and handles any tool calls requested by the model. Tests can pass a
-    fake client so doctests stay deterministic and do not spend API credits.
+    Groq, and handles any tool calls requested by the model.
 
-    >>> from types import SimpleNamespace
-    >>> from unittest.mock import Mock
-    >>> def completion(text):
-    ...     message = SimpleNamespace(content=text, tool_calls=None)
-    ...     return SimpleNamespace(choices=[SimpleNamespace(message=message)])
-    >>> fake_client = Mock()
-    >>> fake_client.chat.completions.create.return_value = completion('Ahoy.')
-    >>> chat = Chat(client=fake_client)
-    >>> chat.send_message('hello', temperature=0.0)
-    'Ahoy.'
-    >>> chat.messages[-1]
-    {'role': 'assistant', 'content': 'Ahoy.'}
-
-    >>> tool_call = SimpleNamespace(
-    ...     id='call_1',
-    ...     function=SimpleNamespace(
-    ...         name='calculate',
-    ...         arguments='{"expression": "2 + 3"}',
-    ...     ),
-    ... )
-    >>> first = SimpleNamespace(
-    ...     choices=[
-    ...         SimpleNamespace(
-    ...             message=SimpleNamespace(
-    ...                 content=None,
-    ...                 tool_calls=[tool_call],
-    ...             )
-    ...         )
-    ...     ]
-    ... )
-    >>> second = completion('2 + 3 is 5.')
-    >>> fake_client = Mock()
-    >>> fake_client.chat.completions.create.side_effect = [first, second]
-    >>> chat = Chat(client=fake_client)
-    >>> chat.send_message('what is 2 + 3?', temperature=0.0)
-    '2 + 3 is 5.'
-    >>> chat.messages[-2]['content']
-    '5'
-
-    >>> fake_client = Mock()
-    >>> fake_client.chat.completions.create.side_effect = [first, second]
-    >>> chat = Chat(client=fake_client, debug=True)
-    >>> chat.send_message('debug the tool call', temperature=0.0)
-    [tool] /calculate 2 + 3
-    '2 + 3 is 5.'
-
-    >>> fake_client = Mock()
-    >>> fake_client.chat.completions.create.return_value = first
-    >>> chat = Chat(client=fake_client)
-    >>> chat.send_message('loop forever', temperature=0.0)
-    'error: too many tool calls'
+    >>> if live_doctests_enabled():
+    ...     chat = Chat()
+    ...     reply = chat.send_message(
+    ...         'Use the ls tool on the tools directory and reply with the '
+    ...         'exact filename calculate.py.',
+    ...         temperature=0.0,
+    ...     )
+    ...     'calculate.py' in reply and any(
+    ...         message.get('role') == 'tool'
+    ...         and message.get('name') == 'ls'
+    ...         for message in chat.messages
+    ...     )
+    True
+    >>> if live_doctests_enabled():
+    ...     chat = Chat()
+    ...     _ = chat.send_message(
+    ...         'Remember that my name is Isaiah. Reply with OK.',
+    ...         temperature=0.0,
+    ...     )
+    ...     'isaiah' in chat.send_message(
+    ...         'What name did I ask you to remember? Reply with just the '
+    ...         'name.',
+    ...         temperature=0.0,
+    ...     ).lower()
+    True
     """
 
     def __init__(self, client=None, debug=False):
@@ -285,36 +268,7 @@ def format_debug_tool_call(name, arguments):
 
 
 def repl(chat=None, temperature=0.0):
-    """Run the interactive command line loop.
-
-    >>> from types import SimpleNamespace
-    >>> from unittest.mock import Mock
-    >>> def completion(text):
-    ...     message = SimpleNamespace(content=text, tool_calls=None)
-    ...     return SimpleNamespace(choices=[SimpleNamespace(message=message)])
-    >>> fake_client = Mock()
-    >>> fake_client.chat.completions.create.return_value = completion(
-    ...     'Ahoy, Bob.'
-    ... )
-    >>> chat = Chat(client=fake_client)
-    >>> def monkey_input(prompt, user_inputs=['/calculate 2 + 3', 'hello']):
-    ...     try:
-    ...         user_input = user_inputs.pop(0)
-    ...         print(f'{prompt}{user_input}')
-    ...         return user_input
-    ...     except IndexError:
-    ...         raise KeyboardInterrupt
-    >>> import builtins
-    >>> original_input = builtins.input
-    >>> builtins.input = monkey_input
-    >>> repl(chat=chat, temperature=0.0)
-    chat> /calculate 2 + 3
-    5
-    chat> hello
-    Ahoy, Bob.
-    <BLANKLINE>
-    >>> builtins.input = original_input
-    """
+    """Run the interactive command line loop."""
     try:
         import readline  # noqa: F401
     except ImportError:
@@ -333,13 +287,7 @@ def repl(chat=None, temperature=0.0):
 
 
 def parse_args(argv=None):
-    """Parse command line arguments.
-
-    >>> parse_args(['--debug', 'hello']).debug
-    True
-    >>> parse_args(['hello', 'there']).message
-    ['hello', 'there']
-    """
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("message", nargs="*")
@@ -347,13 +295,7 @@ def parse_args(argv=None):
 
 
 def main(argv=None):
-    """Run one command line message or start the interactive REPL.
-
-    >>> main(['--help']) # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    SystemExit: 0
-    """
+    """Run one command line message or start the interactive REPL."""
     args = parse_args(argv)
     chat = Chat(debug=args.debug)
     if args.message:

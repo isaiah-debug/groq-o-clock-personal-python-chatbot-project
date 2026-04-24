@@ -25,7 +25,7 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Run doctests with coverage
-        run: coverage run -m pytest chat.py tools/*.py --doctest-modules
+        run: coverage run tests/run_doctests.py
 
       - name: Report coverage
         run: coverage report -m

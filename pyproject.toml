@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cmc-csci040-isaiah-bingham-docsum"
+name = "groq-o-clock"
 version = "0.2.0"
 description = "A terminal assistant for chatting with local documents."
 readme = "README.md"

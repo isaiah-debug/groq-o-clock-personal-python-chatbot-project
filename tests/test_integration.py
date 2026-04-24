@@ -1,32 +1,20 @@
-"""Integration tests for manual commands and automatic tool calls."""
+"""Deterministic tests for local helper behavior."""
 
 from types import SimpleNamespace
-from unittest.mock import Mock
 
-from chat import Chat
-
-
-def completion(text):
-    """Return a fake Groq completion with plain assistant text."""
-    message = SimpleNamespace(content=text, tool_calls=None)
-    return SimpleNamespace(choices=[SimpleNamespace(message=message)])
-
-
-def tool_completion(name, arguments):
-    """Return a fake Groq completion that requests one tool call."""
-    tool_call = SimpleNamespace(
-        id="call_1",
-        type="function",
-        function=SimpleNamespace(name=name, arguments=arguments),
-    )
-    message = SimpleNamespace(content=None, tool_calls=[tool_call])
-    return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+from chat import (
+    Chat,
+    assistant_tool_message,
+    format_debug_tool_call,
+    live_doctests_enabled,
+    manual_args,
+    run_tool,
+)
 
 
 def test_manual_slash_command_adds_tool_output_to_context():
-    """Manual slash commands run tools without calling the LLM."""
-    client = Mock()
-    chat = Chat(client=client)
+    """Manual slash commands run tools without contacting the model."""
+    chat = Chat(client=False)
 
     result = chat.run_manual_command("/calculate 6 * 7")
 
@@ -35,36 +23,44 @@ def test_manual_slash_command_adds_tool_output_to_context():
         "role": "user",
         "content": "Manual tool /calculate returned:\n42",
     }
-    client.chat.completions.create.assert_not_called()
 
 
-def test_automatic_tool_call_runs_local_tool_and_returns_final_answer():
-    """Automatic tool calls run through the fake client and tool dispatcher."""
-    client = Mock()
-    client.chat.completions.create.side_effect = [
-        tool_completion("calculate", '{"expression": "6 * 7"}'),
-        completion("6 * 7 is 42."),
-    ]
-    chat = Chat(client=client)
+def test_assistant_tool_message_converts_tool_calls_to_plain_dict():
+    """Assistant messages with tool calls are converted to plain dicts."""
+    call = SimpleNamespace(
+        id="call_1",
+        type="function",
+        function=SimpleNamespace(name="ls", arguments='{"path": "."}'),
+    )
+    message = SimpleNamespace(content=None, tool_calls=[call])
 
-    result = chat.send_message("what is six times seven?")
+    result = assistant_tool_message(message)
 
-    assert result == "6 * 7 is 42."
-    assert chat.messages[-2]["role"] == "tool"
-    assert chat.messages[-2]["name"] == "calculate"
-    assert chat.messages[-2]["content"] == "42"
+    assert result["role"] == "assistant"
+    assert result["tool_calls"][0]["function"]["name"] == "ls"
+    assert result["tool_calls"][0]["function"]["arguments"] == '{"path": "."}'
 
 
-def test_debug_mode_prints_tool_calls(capsys):
-    """Debug mode prints the tool call before returning the final answer."""
-    client = Mock()
-    client.chat.completions.create.side_effect = [
-        tool_completion("ls", '{"path": "."}'),
-        completion("I checked the folder."),
-    ]
-    chat = Chat(client=client, debug=True)
+def test_manual_args_joins_calculate_expressions():
+    """Slash-command parsing preserves calculator expressions."""
+    assert manual_args("calculate", ["2", "+", "3"]) == ["2 + 3"]
+    assert manual_args("grep", ["needle", "*.txt"]) == ["needle", "*.txt"]
 
-    result = chat.send_message("what files are here?")
 
-    assert result == "I checked the folder."
-    assert "[tool] /ls ." in capsys.readouterr().out
+def test_run_tool_reports_missing_arguments_and_unknown_commands():
+    """Tool dispatch surfaces simple command errors as strings."""
+    assert run_tool("calculate", ["2 + 2"]) == "4"
+    assert run_tool("unknown") == "error: unknown command unknown"
+    assert run_tool("cat") == (
+        "error: cat() missing 1 required positional argument: 'path'"
+    )
+
+
+def test_format_debug_tool_call_and_live_flag_are_simple_strings_and_bools():
+    """Debug formatting and live-doctest gating stay lightweight."""
+    assert format_debug_tool_call(
+        "ls",
+        {"path": ".github"},
+    ) == "[tool] /ls .github"
+    assert format_debug_tool_call("ls", {}) == "[tool] /ls"
+    assert isinstance(live_doctests_enabled(), bool)

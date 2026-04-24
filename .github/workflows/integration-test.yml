@@ -46,7 +46,10 @@ jobs:
           fi
           mkdir -p itest
           printf 'DocChat docs\nneedle line\n' > itest/sample.txt
-          output="$(chat --debug 'Use the ls tool to list the files in the itest folder. Reply with the exact filename sample.txt.')"
-          echo "$output"
-          echo "$output" | grep '\[tool\] /ls'
-          echo "$output" | grep 'sample.txt'
+          memory_output="$(printf 'My name is Bob.\nWhat is my name? Reply with just the name.\n' | chat)"
+          echo "$memory_output"
+          echo "$memory_output" | grep -i 'bob'
+          tool_output="$(printf 'Use the ls tool to list the files in the itest folder. Reply with the exact filename sample.txt.\n' | chat --debug)"
+          echo "$tool_output"
+          echo "$tool_output" | grep '\[tool\] /ls'
+          echo "$tool_output" | grep 'sample.txt'
