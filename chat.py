@@ -10,6 +10,7 @@ import os
 import shlex
 
 from dotenv import load_dotenv
+from groq import AuthenticationError
 from groq import Groq
 
 from tools.calculate import TOOL_SPEC as CALCULATE_SPEC
@@ -31,6 +32,7 @@ TOOL_FUNCTIONS = {
     "cat": cat,
     "grep": grep,
 }
+EXIT_COMMANDS = {"/exit", "/quit"}
 
 
 def live_doctests_enabled():
@@ -82,6 +84,7 @@ class Chat:
         """
         self.client = client
         self.debug = debug
+        self.timeout = 30
         self.messages = [
             {
                 "role": "system",
@@ -140,16 +143,22 @@ class Chat:
         Class behavior is demonstrated in the class docstring.
         """
         if self.client is None:
-            self.client = Groq()
+            self.client = Groq(timeout=self.timeout)
 
         for _ in range(5):
-            response = self.client.chat.completions.create(
-                messages=self.messages,
-                model="llama-3.1-8b-instant",
-                temperature=temperature,
-                tools=TOOL_SPECS,
-                tool_choice="auto",
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    messages=self.messages,
+                    model="llama-3.1-8b-instant",
+                    temperature=temperature,
+                    tools=TOOL_SPECS,
+                    tool_choice="auto",
+                )
+            except AuthenticationError:
+                return (
+                    "error: invalid GROQ_API_KEY. "
+                    "Set a valid key in your shell or .env file."
+                )
             message = response.choices[0].message
             tool_calls = getattr(message, "tool_calls", None)
 
@@ -273,11 +282,12 @@ def repl(chat=None, temperature=0.0):
         import readline  # noqa: F401
     except ImportError:
         pass
-
     chat = chat or Chat()
     try:
         while True:
             user_input = input("chat> ")
+            if user_input.strip() in EXIT_COMMANDS:
+                break
             if user_input.startswith("/"):
                 print(chat.run_manual_command(user_input))
             else:
