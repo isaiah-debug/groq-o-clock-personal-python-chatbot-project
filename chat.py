@@ -102,7 +102,12 @@ class Chat:
     def send_message(self, message, temperature=0.0):
         """Send a user message and return the assistant response.
 
-        Class behavior is demonstrated in the class docstring.
+        >>> result = 'error: invalid GROQ_API_KEY. Set a valid key in your shell or .env file.'
+        >>> if live_doctests_enabled():
+        ...     from groq import Groq
+        ...     result = Chat(client=Groq(api_key='invalid-key')).send_message('hi')
+        >>> result
+        'error: invalid GROQ_API_KEY. Set a valid key in your shell or .env file.'
         """
         self.messages.append({"role": "user", "content": message})
         return self._complete_with_tools(temperature)
@@ -281,7 +286,18 @@ def format_debug_tool_call(name, arguments):
 
 
 def repl(chat=None, temperature=0.0):
-    """Run the interactive command line loop."""
+    """Run the interactive command line loop.
+
+    >>> import contextlib, io, sys
+    >>> old_stdin = sys.stdin
+    >>> sys.stdin = io.StringIO('/calculate 2 + 2\\n/exit\\n')
+    >>> buf = io.StringIO()
+    >>> with contextlib.redirect_stdout(buf):
+    ...     repl()
+    >>> sys.stdin = old_stdin
+    >>> '4' in buf.getvalue()
+    True
+    """
     try:
         import readline  # noqa: F401
     except ImportError:
@@ -301,7 +317,15 @@ def repl(chat=None, temperature=0.0):
 
 
 def parse_args(argv=None):
-    """Parse command line arguments."""
+    """Parse command line arguments.
+
+    >>> parse_args([]).debug
+    False
+    >>> parse_args(['--debug']).debug
+    True
+    >>> parse_args(['hello', 'world']).message
+    ['hello', 'world']
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("message", nargs="*")
@@ -309,7 +333,18 @@ def parse_args(argv=None):
 
 
 def main(argv=None):
-    """Run one command line message or start the interactive REPL."""
+    """Run one command line message or start the interactive REPL.
+
+    >>> result = True
+    >>> if live_doctests_enabled():
+    ...     import contextlib, io
+    ...     buf = io.StringIO()
+    ...     with contextlib.redirect_stdout(buf):
+    ...         main(['Reply', 'with', 'only', 'the', 'word', 'pong.'])
+    ...     result = 'pong' in buf.getvalue().lower()
+    >>> result
+    True
+    """
     args = parse_args(argv)
     chat = Chat(debug=args.debug)
     if args.message:
