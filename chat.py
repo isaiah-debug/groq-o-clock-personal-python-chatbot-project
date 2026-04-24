@@ -102,12 +102,9 @@ class Chat:
     def send_message(self, message, temperature=0.0):
         """Send a user message and return the assistant response.
 
-        >>> result = 'error: invalid GROQ_API_KEY. Set a valid key in your shell or .env file.'
-        >>> if live_doctests_enabled():
-        ...     from groq import Groq
-        ...     result = Chat(client=Groq(api_key='invalid-key')).send_message('hi')
-        >>> result
-        'error: invalid GROQ_API_KEY. Set a valid key in your shell or .env file.'
+        >>> chat = Chat(client=Groq(api_key='invalid-key'))
+        >>> chat.send_message('hi').startswith('error:')
+        True
         """
         self.messages.append({"role": "user", "content": message})
         return self._complete_with_tools(temperature)
