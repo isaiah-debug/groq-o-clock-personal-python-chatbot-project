@@ -12,6 +12,38 @@ Groq O'Clock is a terminal chat tool for asking questions about local projects. 
 
 PyPI: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
 
+## Packages
+
+To use the published package from PyPI, install:
+
+```bash
+python -m pip install cmc-csci040-isaiah-bingham-docsum
+```
+
+To work from this repo locally, install:
+
+```bash
+python -m pip install -e .
+```
+
+To run tests and packaging checks from this repo, install:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+The chat client needs:
+
+- `groq`
+- `python-dotenv`
+- a `GROQ_API_KEY` in your shell or in a local `.env` file
+
+You can start from:
+
+```bash
+cp .env.example .env
+```
+
 ## Install
 
 The package is meant to be installed and then used from the terminal with the
@@ -20,7 +52,7 @@ The package is meant to be installed and then used from the terminal with the
 ```bash
 python -m pip install -e .
 export GROQ_API_KEY=your_api_key_here
-chat "Use the ls tool on the .github folder and reply with the folder name only."
+chat "What files are in this directory? Reply with just the filenames."
 ```
 
 ## Usage
@@ -29,20 +61,50 @@ The main workflow is asking a normal question and letting Groq decide when to
 inspect files with tools.
 
 ```text
-$ chat "Use the ls tool on the .github folder and reply with the folder name only."
-workflows
+$ chat
+chat> what files are in this directory?
+README.md, chat.py, pyproject.toml, requirements.txt, tests, tools, and demo.gif.
 ```
 
 If you want to drive the tools yourself, the slash commands are still available
-inside the REPL.
+inside the REPL. These are the same kinds of commands exercised in the
+integration tests.
 
 ```text
 $ chat
-chat> /ls .github
-workflows
+chat> /ls itest
+sample.txt
 chat> /calculate 6 * 7
 42
+chat> /cat itest/sample.txt
+DocChat docs
+needle line
+chat> /grep needle itest/*.txt
+itest/sample.txt:needle line
 ```
+
+## Record A Demo GIF
+
+The cleanest way to make a real terminal GIF is to use `vhs`, which records the
+actual terminal session you type through.
+
+On macOS:
+
+```bash
+brew install vhs
+```
+
+Then make sure your Groq key is available and run:
+
+```bash
+export GROQ_API_KEY=your_api_key_here
+./scripts/record_demo.sh
+```
+
+That command prepares the same sample file used by the tests and records the
+session defined in [demo.tape](/Users/isaiahbingham/project/groq-o-clock-personal-python-chatbot-project/demo.tape).
+The output overwrites `demo.gif`, which is already embedded at the top of this
+README.
 
 ## Test Projects
 
