@@ -1,11 +1,11 @@
 Output demo.gif
 
-Set Shell "zsh"
+Set Shell "bash"
 Set FontSize 18
-Set Width 1000
-Set Height 600
-Set TypingSpeed 40ms
-Set PlaybackSpeed 1.0
+Set Width 10
+Set Height 1000
+Set TypingSpeed 200ms
+Set PlaybackSpeed 0.5ms
 
 Type "chat --debug"
 Enter
