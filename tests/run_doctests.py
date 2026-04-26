@@ -15,9 +15,14 @@ MODULES = [
     "chat",
     "tools.calculate",
     "tools.cat",
+    "tools.doctests",
     "tools.grep",
     "tools.ls",
     "tools.path_safety",
+    "tools.pip_install",
+    "tools.rm",
+    "tools.write_file",
+    "tools.write_files",
 ]
 
 

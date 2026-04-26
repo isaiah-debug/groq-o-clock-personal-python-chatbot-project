@@ -17,20 +17,45 @@ from tools.calculate import TOOL_SPEC as CALCULATE_SPEC
 from tools.calculate import calculate
 from tools.cat import TOOL_SPEC as CAT_SPEC
 from tools.cat import cat
+from tools.doctests import TOOL_SPEC as DOCTESTS_SPEC
+from tools.doctests import doctests
 from tools.grep import TOOL_SPEC as GREP_SPEC
 from tools.grep import grep
 from tools.ls import TOOL_SPEC as LS_SPEC
 from tools.ls import ls
+from tools.pip_install import TOOL_SPEC as PIP_INSTALL_SPEC
+from tools.pip_install import pip_install
+from tools.rm import TOOL_SPEC as RM_SPEC
+from tools.rm import rm
+from tools.write_file import TOOL_SPEC as WRITE_FILE_SPEC
+from tools.write_file import write_file
+from tools.write_files import TOOL_SPEC as WRITE_FILES_SPEC
+from tools.write_files import write_files
 
 load_dotenv()
 
 
-TOOL_SPECS = [CALCULATE_SPEC, LS_SPEC, CAT_SPEC, GREP_SPEC]
+TOOL_SPECS = [
+    CALCULATE_SPEC,
+    LS_SPEC,
+    CAT_SPEC,
+    GREP_SPEC,
+    DOCTESTS_SPEC,
+    WRITE_FILE_SPEC,
+    WRITE_FILES_SPEC,
+    RM_SPEC,
+    PIP_INSTALL_SPEC,
+]
 TOOL_FUNCTIONS = {
     "calculate": calculate,
     "ls": ls,
     "cat": cat,
     "grep": grep,
+    "doctests": doctests,
+    "write_file": write_file,
+    "write_files": write_files,
+    "rm": rm,
+    "pip_install": pip_install,
 }
 EXIT_COMMANDS = {"/exit", "/quit"}
 
@@ -42,6 +67,27 @@ def live_doctests_enabled():
     True
     """
     return bool(os.getenv("GROQ_API_KEY"))
+
+
+def _doctest_result_has_failures(content):
+    """Return True if a doctest tool result string reports failures.
+
+    >>> _doctest_result_has_failures('1 item had failures.')
+    True
+    >>> _doctest_result_has_failures('Failed example')
+    True
+    >>> _doctest_result_has_failures('5 items passed all tests')
+    False
+    >>> _doctest_result_has_failures('error: unsafe path')
+    False
+    >>> _doctest_result_has_failures('')
+    False
+    """
+    return (
+        "items had failures" in content
+        or "item had failures" in content
+        or "Failed example" in content
+    )
 
 
 class Chat:
@@ -146,12 +192,15 @@ class Chat:
     def _complete_with_tools(self, temperature):
         """Call Groq until the assistant returns a final text response.
 
+        Implements the Ralph Wiggum loop: if doctests fail after the model
+        tries to give a final answer, force another round of tool usage.
+
         Class behavior is demonstrated in the class docstring.
         """
         if self.client is None:
             self.client = Groq(timeout=self.timeout)
 
-        for _ in range(5):
+        for _ in range(10):
             try:
                 response = self.client.chat.completions.create(
                     messages=self.messages,
@@ -170,6 +219,19 @@ class Chat:
 
             if not tool_calls:
                 content = message.content or ""
+                # Ralph Wiggum loop: force another round if doctests failed
+                if self._last_doctests_failed():
+                    self.messages.append(
+                        {"role": "assistant", "content": content}
+                    )
+                    self.messages.append({
+                        "role": "user",
+                        "content": (
+                            "Some doctests are still failing. "
+                            "Please fix and run doctests again."
+                        ),
+                    })
+                    continue
                 self.messages.append({"role": "assistant", "content": content})
                 return content
 
@@ -190,6 +252,24 @@ class Chat:
                 )
 
         return "error: too many tool calls"
+
+    def _last_doctests_failed(self):
+        """Return True if the most recent doctests tool result shows failures.
+
+        >>> chat = Chat(client=False)
+        >>> chat._last_doctests_failed()
+        False
+        >>> chat.messages.append({'role': 'tool', 'name': 'doctests', 'content': '5 items passed all tests'})
+        >>> chat._last_doctests_failed()
+        False
+        >>> chat.messages.append({'role': 'tool', 'name': 'doctests', 'content': '1 item had failures.'})
+        >>> chat._last_doctests_failed()
+        True
+        """
+        for msg in reversed(self.messages):
+            if msg.get("role") == "tool" and msg.get("name") == "doctests":
+                return _doctest_result_has_failures(msg.get("content", ""))
+        return False
 
 
 def assistant_tool_message(message):
@@ -332,6 +412,9 @@ def parse_args(argv=None):
 def main(argv=None):
     """Run one command line message or start the interactive REPL.
 
+    Exits with an error if the current directory is not a git repository.
+    Loads AGENTS.md into the conversation context if present.
+
     >>> result = True
     >>> if live_doctests_enabled():
     ...     import contextlib, io
@@ -342,8 +425,17 @@ def main(argv=None):
     >>> result
     True
     """
+    if not os.path.isdir(".git"):
+        print("error: no .git folder found in the current directory.")
+        return
+
     args = parse_args(argv)
     chat = Chat(debug=args.debug)
+
+    if os.path.isfile("AGENTS.md"):
+        agents_content = cat("AGENTS.md")
+        chat.messages[0]["content"] += f"\n\nAGENTS.md:\n{agents_content}"
+
     if args.message:
         print(chat.send_message(" ".join(args.message)))
     else:
