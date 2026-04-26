@@ -14,7 +14,7 @@ TOOL_SPEC = {
             "properties": {
                 "library_name": {
                     "type": "string",
-                    "description": "Name of the Python package to install via pip.",
+                    "description": "Name of the Python package to install.",
                 },
             },
             "required": ["library_name"],

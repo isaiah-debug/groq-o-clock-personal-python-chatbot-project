@@ -10,13 +10,15 @@ TOOL_SPEC = {
     "type": "function",
     "function": {
         "name": "doctests",
-        "description": "Run doctests (with --verbose) on a safe relative Python file.",
+        "description": (
+            "Run doctests (with --verbose) on a safe relative Python file."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Relative path to a Python file to doctest.",
+                    "description": "Relative path to a Python file.",
                 },
             },
             "required": ["path"],

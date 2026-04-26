@@ -259,10 +259,13 @@ class Chat:
         >>> chat = Chat(client=False)
         >>> chat._last_doctests_failed()
         False
-        >>> chat.messages.append({'role': 'tool', 'name': 'doctests', 'content': '5 items passed all tests'})
+        >>> passed = {'role': 'tool', 'name': 'doctests', 'content': 'ok'}
+        >>> chat.messages.append(passed)
         >>> chat._last_doctests_failed()
         False
-        >>> chat.messages.append({'role': 'tool', 'name': 'doctests', 'content': '1 item had failures.'})
+        >>> failed = {'role': 'tool', 'name': 'doctests',
+        ...           'content': '1 item had failures.'}
+        >>> chat.messages.append(failed)
         >>> chat._last_doctests_failed()
         True
         """

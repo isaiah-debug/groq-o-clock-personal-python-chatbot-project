@@ -11,16 +11,14 @@ TOOL_SPEC = {
     "function": {
         "name": "write_files",
         "description": (
-            "Write multiple files (utf-8) and commit them all to git in one commit."
+            "Write multiple files (utf-8) and commit them to git."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "files": {
                     "type": "array",
-                    "description": (
-                        "List of files to write. Each item needs 'path' and 'contents'."
-                    ),
+                    "description": "List of {path, contents} dicts.",
                     "items": {
                         "type": "object",
                         "properties": {
@@ -32,7 +30,7 @@ TOOL_SPEC = {
                 },
                 "commit_message": {
                     "type": "string",
-                    "description": "Git commit message (prefixed with [docchat] automatically).",
+                    "description": "Commit message (prefixed with [docchat]).",
                 },
             },
             "required": ["files", "commit_message"],
@@ -66,14 +64,19 @@ def write_files(files, commit_message):
             doctest_output.append(doctests(path))
 
     try:
-        subprocess.run(["git", "add"] + paths, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add"] + paths, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", f"[docchat] {commit_message}"],
             check=True,
             capture_output=True,
         )
     except subprocess.CalledProcessError as error:
-        stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else (error.stderr or "")
+        raw = error.stderr
+        stderr = raw.decode() if isinstance(raw, bytes) else (raw or "")
         return f"error: git operation failed: {stderr.strip()}"
 
-    return "\n".join(doctest_output) if doctest_output else "Files written and committed."
+    if doctest_output:
+        return "\n".join(doctest_output)
+    return "Files written and committed."

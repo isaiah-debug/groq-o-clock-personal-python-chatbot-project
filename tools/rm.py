@@ -12,14 +12,14 @@ TOOL_SPEC = {
     "function": {
         "name": "rm",
         "description": (
-            "Delete safe relative files (supports glob patterns) and commit the removal."
+            "Delete safe relative files (supports globs) and commit."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Relative file path or glob pattern to delete.",
+                    "description": "Relative file path or glob to delete.",
                 },
             },
             "required": ["path"],
@@ -48,13 +48,16 @@ def rm(path):
     for f in matched:
         os.remove(f)
     try:
-        subprocess.run(["git", "add"] + matched, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add"] + matched, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", f"[docchat] rm {path}"],
             check=True,
             capture_output=True,
         )
     except subprocess.CalledProcessError as error:
-        stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else (error.stderr or "")
+        raw = error.stderr
+        stderr = raw.decode() if isinstance(raw, bytes) else (raw or "")
         return f"Removed files but git commit failed: {stderr.strip()}"
     return f"Removed: {', '.join(matched)}"

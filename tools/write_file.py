@@ -17,11 +17,11 @@ TOOL_SPEC = {
                 },
                 "contents": {
                     "type": "string",
-                    "description": "UTF-8 text content to write to the file.",
+                    "description": "UTF-8 text content to write.",
                 },
                 "commit_message": {
                     "type": "string",
-                    "description": "Git commit message (prefixed with [docchat] automatically).",
+                    "description": "Commit message (prefixed with [docchat]).",
                 },
             },
             "required": ["path", "contents", "commit_message"],
