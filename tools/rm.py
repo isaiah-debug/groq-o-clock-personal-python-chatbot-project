@@ -2,7 +2,8 @@
 
 import glob
 import os
-import subprocess
+
+from git import Repo
 
 from tools.path_safety import is_path_safe
 
@@ -48,16 +49,9 @@ def rm(path):
     for f in matched:
         os.remove(f)
     try:
-        subprocess.run(
-            ["git", "add"] + matched, check=True, capture_output=True
-        )
-        subprocess.run(
-            ["git", "commit", "-m", f"[docchat] rm {path}"],
-            check=True,
-            capture_output=True,
-        )
-    except subprocess.CalledProcessError as error:
-        raw = error.stderr
-        stderr = raw.decode() if isinstance(raw, bytes) else (raw or "")
-        return f"Removed files but git commit failed: {stderr.strip()}"
+        repo = Repo(".")
+        repo.index.remove(matched, working_tree=False)
+        repo.index.commit(f"[docchat] rm {path}")
+    except Exception as error:  # pragma: no cover - GitPython error types vary
+        return f"Removed files but git commit failed: {error}"
     return f"Removed: {', '.join(matched)}"

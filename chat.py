@@ -5,6 +5,7 @@ directly or call safe local tools for reading files in the current project.
 """
 
 import argparse
+import glob
 import json
 import os
 import shlex
@@ -17,12 +18,17 @@ from tools.calculate import TOOL_SPEC as CALCULATE_SPEC
 from tools.calculate import calculate
 from tools.cat import TOOL_SPEC as CAT_SPEC
 from tools.cat import cat
+from tools.compact import TOOL_SPEC as COMPACT_SPEC
+from tools.compact import build_compact_messages
+from tools.compact import format_transcript
 from tools.doctests import TOOL_SPEC as DOCTESTS_SPEC
 from tools.doctests import doctests
 from tools.grep import TOOL_SPEC as GREP_SPEC
 from tools.grep import grep
 from tools.ls import TOOL_SPEC as LS_SPEC
 from tools.ls import ls
+from tools.load_image import TOOL_SPEC as LOAD_IMAGE_SPEC
+from tools.load_image import build_image_message
 from tools.pip_install import TOOL_SPEC as PIP_INSTALL_SPEC
 from tools.pip_install import pip_install
 from tools.rm import TOOL_SPEC as RM_SPEC
@@ -34,13 +40,29 @@ from tools.write_files import write_files
 
 load_dotenv()
 
+DEFAULT_MODELS = {
+    "anthropic": "anthropic/claude-opus-4.7",
+    "google": "google/gemini-2.5-pro",
+    "groq": "meta-llama/llama-4-scout-17b-16e-instruct",
+    "openai": "openai/gpt-5.4",
+}
+MODEL_ENV_VARS = {
+    "anthropic": "ANTHROPIC_MODEL",
+    "google": "GOOGLE_MODEL",
+    "groq": "GROQ_MODEL",
+    "openai": "OPENAI_MODEL",
+}
+PROVIDER_CHOICES = tuple(sorted(DEFAULT_MODELS))
+SPECIAL_TOOLS = {"compact", "load_image"}
 
 TOOL_SPECS = [
     CALCULATE_SPEC,
     LS_SPEC,
     CAT_SPEC,
     GREP_SPEC,
+    COMPACT_SPEC,
     DOCTESTS_SPEC,
+    LOAD_IMAGE_SPEC,
     WRITE_FILE_SPEC,
     WRITE_FILES_SPEC,
     RM_SPEC,
@@ -67,6 +89,49 @@ def live_doctests_enabled():
     True
     """
     return bool(os.getenv("GROQ_API_KEY"))
+
+
+def provider_model(provider):
+    """Return the default or overridden model name for one provider.
+
+    >>> provider_model('groq').startswith('meta-llama/')
+    True
+    >>> provider_model('openai').startswith('openai/')
+    True
+    """
+    return os.getenv(MODEL_ENV_VARS[provider], DEFAULT_MODELS[provider])
+
+
+def build_client(provider, timeout=30):
+    """Build a model client for the selected provider.
+
+    >>> build_client('unknown')
+    Traceback (most recent call last):
+    ...
+    ValueError: error: unknown provider unknown
+    """
+    if provider == "groq":
+        return Groq(timeout=timeout)
+    if provider not in DEFAULT_MODELS:
+        raise ValueError(f"error: unknown provider {provider}")
+
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "missing OPENROUTER_API_KEY for non-groq providers"
+        )
+    try:
+        from openai import OpenAI
+    except ImportError as error:
+        raise RuntimeError(
+            "the openai package is required for non-groq providers"
+        ) from error
+
+    return OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+        timeout=timeout,
+    )
 
 
 def _doctest_result_has_failures(content):
@@ -127,20 +192,23 @@ class Chat:
     True
     """
 
-    def __init__(self, client=None, debug=False):
+    def __init__(self, client=None, debug=False, provider="groq", model=None):
         """Create a chat session.
 
         Class behavior is demonstrated in the class docstring.
         """
         self.client = client
         self.debug = debug
+        self.provider = provider
         self.timeout = 30
+        self.model = model or provider_model(provider)
         self.messages = [
             {
                 "role": "system",
                 "content": (
                     "Write the output in 1-2 sentences. "
-                    "Use tools when you need to inspect files or do math."
+                    "Use tools when you need to inspect files, update the "
+                    "repository, or do math."
                 ),
             },
         ]
@@ -180,7 +248,21 @@ class Chat:
 
         command = parts[0]
         args = manual_args(command, parts[1:])
-        result = run_tool(command, args)
+        if command == "compact":
+            return self.compact_history()
+        if command == "load_image":
+            if not args:
+                return (
+                    "error: load_image() missing 1 required positional "
+                    "argument: 'path'"
+                )
+            try:
+                self.messages.append(build_image_message(args[0]))
+            except (FileNotFoundError, ValueError) as error:
+                return f"error: {error}"
+            result = f"Loaded image {args[0]}"
+        else:
+            result = run_tool(command, args)
         self.messages.append(
             {
                 "role": "user",
@@ -198,22 +280,28 @@ class Chat:
         Class behavior is demonstrated in the class docstring.
         """
         if self.client is None:
-            self.client = Groq(timeout=self.timeout)
+            try:
+                self.client = build_client(self.provider, timeout=self.timeout)
+            except RuntimeError as error:
+                return f"error: {error}"
 
         for _ in range(10):
             try:
-                response = self.client.chat.completions.create(
-                    messages=self.messages,
-                    model="llama-3.1-8b-instant",
-                    temperature=temperature,
-                    tools=TOOL_SPECS,
-                    tool_choice="auto",
-                )
+                response = self.client.chat.completions.create(**{
+                    "messages": self.messages,
+                    "model": self.model,
+                    "temperature": temperature,
+                    "tools": TOOL_SPECS,
+                    "tool_choice": "auto",
+                })
             except AuthenticationError:
                 return (
                     "error: invalid GROQ_API_KEY. "
                     "Set a valid key in your shell or .env file."
                 )
+            except Exception as error:  # pragma: no cover
+                # Different client SDKs raise different exception types.
+                return f"error: {error}"
             message = response.choices[0].message
             tool_calls = getattr(message, "tool_calls", None)
 
@@ -236,9 +324,36 @@ class Chat:
                 return content
 
             self.messages.append(assistant_tool_message(message))
+            compacted = False
             for tool_call in tool_calls:
                 name = tool_call.function.name
                 arguments = json.loads(tool_call.function.arguments or "{}")
+                if name == "compact":
+                    self.compact_history()
+                    compacted = True
+                    break
+                if name == "load_image":
+                    path = arguments.get("path")
+                    if self.debug:
+                        print(format_debug_tool_call(name, arguments))
+                    try:
+                        image_message = build_image_message(path)
+                    except (FileNotFoundError, ValueError) as error:
+                        content = f"error: {error}"
+                        image_message = None
+                    else:
+                        content = f"Loaded image {path}"
+                    self.messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": name,
+                            "content": content,
+                        }
+                    )
+                    if image_message is not None:
+                        self.messages.append(image_message)
+                    continue
                 content = run_tool(name, kwargs=arguments)
                 if self.debug:
                     print(format_debug_tool_call(name, arguments))
@@ -250,8 +365,91 @@ class Chat:
                         "content": content,
                     }
                 )
+            if compacted:
+                continue
 
         return "error: too many tool calls"
+
+    def _complete_without_tools(self, messages, temperature=0.0):
+        """Call the model once without any tool definitions.
+
+        >>> fake = type('FakeClient', (), {})()
+        >>> fake.chat = type('ChatAPI', (), {})()
+        >>> fake.chat.completions = type('Completions', (), {})()
+        >>> fake.chat.completions.create = lambda **_: type(
+        ...     'Response',
+        ...     (),
+        ...     {'choices': [type('Choice', (), {
+        ...         'message': type('Message', (), {
+        ...             'content': 'summary',
+        ...             'tool_calls': None,
+        ...         })()
+        ...     })()]},
+        ... )()
+        >>> Chat(client=fake)._complete_without_tools([], temperature=0.0)
+        'summary'
+        """
+        if self.client is None:
+            self.client = build_client(self.provider, timeout=self.timeout)
+        response = self.client.chat.completions.create(
+            messages=messages,
+            model=self.model,
+            temperature=temperature,
+        )
+        return response.choices[0].message.content or ""
+
+    def compact_history(self):
+        """Summarize the chat into a single compact system message.
+
+        >>> fake = type('FakeClient', (), {})()
+        >>> fake.chat = type('ChatAPI', (), {})()
+        >>> fake.chat.completions = type('Completions', (), {})()
+        >>> fake.chat.completions.create = lambda **_: type(
+        ...     'Response',
+        ...     (),
+        ...     {'choices': [type('Choice', (), {
+        ...         'message': type('Message', (), {
+        ...             'content': 'short summary',
+        ...             'tool_calls': None,
+        ...         })()
+        ...     })()]},
+        ... )()
+        >>> chat = Chat(client=fake)
+        >>> chat.messages.append({'role': 'user', 'content': 'Do the work.'})
+        >>> chat.compact_history()
+        'short summary'
+        >>> len(chat.messages)
+        1
+        >>> 'short summary' in chat.messages[0]['content']
+        True
+        """
+        system_prompt = self.messages[0]["content"]
+        transcript = format_transcript(self.messages)
+        summary_chat = Chat(
+            client=self.client,
+            debug=self.debug,
+            provider=self.provider,
+            model=self.model,
+        )
+        summary = summary_chat._complete_without_tools(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "Summarize this chat in 1-5 lines. Keep the user's "
+                        "goal, current repo state, unfinished work, and any "
+                        "important file paths or errors."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": transcript,
+                },
+            ],
+            temperature=0.0,
+        )
+        self.messages = build_compact_messages(system_prompt, summary)
+        return summary
 
     def _last_doctests_failed(self):
         """Return True if the most recent doctests tool result shows failures.
@@ -365,6 +563,93 @@ def format_debug_tool_call(name, arguments):
     return f"[tool] /{name} {argument_text}"
 
 
+class SlashCompleter:
+    """Provide tab completion for slash commands and filenames.
+
+    >>> completer = SlashCompleter(['grep', 'load_image', 'ls'])
+    >>> completer.command_matches('/l')
+    ['/load_image', '/ls']
+    """
+
+    def __init__(self, tool_names):
+        """Store the sorted list of slash commands to complete."""
+        self.tool_names = sorted(tool_names)
+
+    def command_matches(self, text):
+        """Return matching slash commands for a typed prefix.
+
+        >>> SlashCompleter(['cat', 'calculate']).command_matches('/c')
+        ['/calculate', '/cat']
+        """
+        prefix = text[1:]
+        return [
+            f"/{name}" for name in self.tool_names if name.startswith(prefix)
+        ]
+
+    def path_matches(self, prefix):
+        """Return matching filenames for the final slash-command argument.
+
+        >>> import os
+        >>> from pathlib import Path
+        >>> Path('completion_dir').mkdir(exist_ok=True)
+        >>> _ = Path('completion_dir/a.txt').write_text('a')
+        >>> matches = SlashCompleter(['ls']).path_matches('completion_dir/a')
+        >>> matches
+        ['completion_dir/a.txt']
+        >>> os.remove('completion_dir/a.txt')
+        >>> os.rmdir('completion_dir')
+        """
+        pattern = f"{prefix}*" if prefix else "*"
+        matches = []
+        for path in sorted(glob.glob(pattern)):
+            if os.path.isdir(path):
+                matches.append(f"{path}/")
+            else:
+                matches.append(path)
+        return matches
+
+    def candidates(self, line_buffer):
+        """Return all completion candidates for the current input line.
+
+        >>> SlashCompleter(['ls']).candidates('/l')
+        ['/ls']
+        """
+        if not line_buffer.startswith("/"):
+            return []
+        if " " not in line_buffer:
+            return self.command_matches(line_buffer)
+        prefix = line_buffer.rsplit(" ", 1)[1]
+        return self.path_matches(prefix)
+
+    def complete(self, text, state):
+        """Return one readline completion result for the current state."""
+        try:
+            import readline
+        except ImportError:  # pragma: no cover - readline is platform-specific
+            return None
+        matches = self.candidates(readline.get_line_buffer())
+        if state < len(matches):
+            return matches[state]
+        return None
+
+
+def configure_readline():
+    """Install tab completion for slash commands when readline exists.
+
+    >>> isinstance(configure_readline(), bool)
+    True
+    """
+    try:
+        import readline
+    except ImportError:
+        return False
+
+    completer = SlashCompleter(sorted(set(TOOL_FUNCTIONS) | SPECIAL_TOOLS))
+    readline.parse_and_bind("tab: complete")
+    readline.set_completer(completer.complete)
+    return True
+
+
 def repl(chat=None, temperature=0.0):
     """Run the interactive command line loop.
 
@@ -378,10 +663,7 @@ def repl(chat=None, temperature=0.0):
     >>> '4' in buf.getvalue()
     True
     """
-    try:
-        import readline  # noqa: F401
-    except ImportError:
-        pass
+    _ = configure_readline()
     chat = chat or Chat()
     try:
         while True:
@@ -403,11 +685,18 @@ def parse_args(argv=None):
     False
     >>> parse_args(['--debug']).debug
     True
+    >>> parse_args(['--provider', 'openai']).provider
+    'openai'
     >>> parse_args(['hello', 'world']).message
     ['hello', 'world']
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--provider",
+        choices=PROVIDER_CHOICES,
+        default="groq",
+    )
     parser.add_argument("message", nargs="*")
     return parser.parse_args(argv)
 
@@ -433,7 +722,7 @@ def main(argv=None):
         return
 
     args = parse_args(argv)
-    chat = Chat(debug=args.debug)
+    chat = Chat(debug=args.debug, provider=args.provider)
 
     if os.path.isfile("AGENTS.md"):
         agents_content = cat("AGENTS.md")

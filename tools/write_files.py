@@ -1,7 +1,10 @@
 """Write files and commit them to git for the chat agent."""
 
-import subprocess
+import os
 
+from git import Repo
+
+from tools.diff_utils import apply_text_update
 from tools.doctests import doctests
 from tools.path_safety import is_path_safe
 
@@ -18,14 +21,15 @@ TOOL_SPEC = {
             "properties": {
                 "files": {
                     "type": "array",
-                    "description": "List of {path, contents} dicts.",
+                    "description": "List of {path, contents|diff} dicts.",
                     "items": {
                         "type": "object",
                         "properties": {
                             "path": {"type": "string"},
                             "contents": {"type": "string"},
+                            "diff": {"type": "string"},
                         },
-                        "required": ["path", "contents"],
+                        "required": ["path"],
                     },
                 },
                 "commit_message": {
@@ -48,34 +52,50 @@ def write_files(files, commit_message):
     'error: unsafe path ../secret'
     >>> write_files([{'path': 'docs/../leak', 'contents': 'x'}], 'test')
     'error: unsafe path docs/../leak'
+    >>> write_files([{'path': 'README.md'}], 'test')
+    'error: each file needs exactly one of contents or diff'
     """
     paths = []
     doctest_output = []
 
     for f in files:
         path = f["path"]
-        contents = f["contents"]
         if not is_path_safe(path):
             return f"error: unsafe path {path}"
+        contents = f.get("contents")
+        diff = f.get("diff")
+        try:
+            original_text = ""
+            if diff is not None and os.path.exists(path):
+                with open(path, encoding="utf-8") as file:
+                    original_text = file.read()
+            updated_text = apply_text_update(
+                original_text,
+                contents=contents,
+                diff=diff,
+            )
+        except UnicodeDecodeError:
+            return f"error: {path} is not valid utf-8 text"
+        except ValueError as error:
+            if str(error) == "provide exactly one of contents or diff":
+                return "error: each file needs exactly one of contents or diff"
+            return f"error: {error}"
+
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
-            fh.write(contents)
+            fh.write(updated_text)
         paths.append(path)
         if path.endswith(".py"):
             doctest_output.append(doctests(path))
 
     try:
-        subprocess.run(
-            ["git", "add"] + paths, check=True, capture_output=True
-        )
-        subprocess.run(
-            ["git", "commit", "-m", f"[docchat] {commit_message}"],
-            check=True,
-            capture_output=True,
-        )
-    except subprocess.CalledProcessError as error:
-        raw = error.stderr
-        stderr = raw.decode() if isinstance(raw, bytes) else (raw or "")
-        return f"error: git operation failed: {stderr.strip()}"
+        repo = Repo(".")
+        repo.index.add(paths)
+        repo.index.commit(f"[docchat] {commit_message}")
+    except Exception as error:  # pragma: no cover - GitPython error types vary
+        return f"error: git operation failed: {error}"
 
     if doctest_output:
         return "\n".join(doctest_output)

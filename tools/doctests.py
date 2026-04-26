@@ -40,7 +40,7 @@ def doctests(path):
     if not is_path_safe(path):
         return "error: unsafe path"
     result = subprocess.run(
-        [sys.executable, "-m", "doctest", path, "-v"],
+        [sys.executable, "-m", "doctest", "-v", path],
         capture_output=True,
         text=True,
     )

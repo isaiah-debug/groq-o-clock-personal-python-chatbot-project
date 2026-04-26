@@ -19,18 +19,24 @@ TOOL_SPEC = {
                     "type": "string",
                     "description": "UTF-8 text content to write.",
                 },
+                "diff": {
+                    "type": "string",
+                    "description": (
+                        "Unified diff used to update an existing file."
+                    ),
+                },
                 "commit_message": {
                     "type": "string",
                     "description": "Commit message (prefixed with [docchat]).",
                 },
             },
-            "required": ["path", "contents", "commit_message"],
+            "required": ["path", "commit_message"],
         },
     },
 }
 
 
-def write_file(path, contents, commit_message):
+def write_file(path, contents=None, commit_message="", diff=None):
     """Write a file and commit it to git.
 
     >>> write_file('/etc/passwd', 'x', 'test')
@@ -40,4 +46,9 @@ def write_file(path, contents, commit_message):
     >>> write_file('docs/../leak', 'x', 'test')
     'error: unsafe path docs/../leak'
     """
-    return _write_files([{"path": path, "contents": contents}], commit_message)
+    file_spec = {"path": path}
+    if contents is not None:
+        file_spec["contents"] = contents
+    if diff is not None:
+        file_spec["diff"] = diff
+    return _write_files([file_spec], commit_message)
