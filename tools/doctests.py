@@ -1,5 +1,7 @@
 """Run doctests for the chat agent."""
 
+import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -39,8 +41,10 @@ def doctests(path):
     """
     if not is_path_safe(path):
         return "error: unsafe path"
+    file_path = pathlib.Path(path)
+    interpreter = shutil.which("python3") or sys.executable
     result = subprocess.run(
-        [sys.executable, "-m", "doctest", "-v", path],
+        [interpreter, "-m", "doctest", "-v", str(file_path)],
         capture_output=True,
         text=True,
     )
