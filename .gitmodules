@@ -7,3 +7,5 @@
 [submodule "test_projects/ebay_scraper"]
 	path = test_projects/ebay_scraper
 	url = https://github.com/ibingham28-bit/project_02_webscraper.git
+
+#these are the projects which the tool does its tools on as examples
