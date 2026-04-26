@@ -1,11 +1,15 @@
 Output demo.gif
 
 Set Shell "bash"
-Set FontSize 18
+Set FontSize 10
 Set Width 10
 Set Height 1000
 Set TypingSpeed 200ms
 Set PlaybackSpeed 0.5ms
+
+Type "press play to see this project go!"
+Enter
+Sleep 1s
 
 Type "chat --debug"
 Enter
