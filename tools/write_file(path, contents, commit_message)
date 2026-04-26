@@ -1,0 +1,3 @@
+def write_file(path, contents, commit_message):
+    return write_files([{'path': path, 'contents': contents}], commit_message)
+

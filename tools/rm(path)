@@ -1,0 +1,11 @@
+import glob
+
+def rm(path)
+    if os.path.isabs(path) or '..' in path.split(os.sep):
+    return f"Error: invalid path {path}"
+    for f in matchef:
+    os.remove(f)
+    repo.index.removed([f])
+    repo.index.commit(f"[docchat] rm {path}")
+    return f"Removed: {', '.join(matched)}
+    

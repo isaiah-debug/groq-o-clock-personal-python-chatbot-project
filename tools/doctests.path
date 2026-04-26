@@ -1,0 +1,10 @@
+import subprocess
+
+def doctests(path)
+    result = subprocess.run(
+        ['python3', '-m', 'doctest', path, '-v'],
+        capture_output=True, text=True
+    )
+    return result.stdout + result.stderr
+    
+    
