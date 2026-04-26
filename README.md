@@ -6,13 +6,13 @@
 [![coverage](https://codecov.io/gh/isaiah-debug/groq-o-clock-personal-python-chatbot-project/branch/main/graph/badge.svg)](https://codecov.io/gh/isaiah-debug/groq-o-clock-personal-python-chatbot-project)
 [![PyPI](https://img.shields.io/pypi/v/cmc-csci040-isaiah-bingham-docsum)](https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/)
 
-Groq O'Clock is a terminal chat tool for asking questions about local projects. It supports Groq tool calls plus direct slash commands for `calculate`, `ls`, `cat`, and `grep`.
+download the project and run it
 
 ![demo](demo.gif)
 
 PyPI: https://pypi.org/project/cmc-csci040-isaiah-bingham-docsum/
 
-## Packages
+packages u need
 
 To use the published package from PyPI, install:
 
@@ -44,7 +44,7 @@ You can start from:
 cp .env.example .env
 ```
 
-## Install
+installation
 
 The package is meant to be installed and then used from the terminal with the
 `chat` command.
@@ -55,7 +55,7 @@ export GROQ_API_KEY=your_api_key_here
 chat "What files are in this directory? Reply with just the filenames."
 ```
 
-## Usage
+using it
 
 The main workflow is asking a normal question and letting Groq decide when to
 inspect files with tools.
@@ -83,33 +83,16 @@ chat> /grep needle itest/*.txt
 itest/sample.txt:needle line
 ```
 
-## Record A Demo GIF
 
-The cleanest way to make a real terminal GIF is to use `vhs`, which records the
-actual terminal session you type through.
-
-On macOS:
-
-```bash
-brew install vhs
-```
-
-Then make sure your Groq key is available and run:
-
-```bash
-export GROQ_API_KEY=your_api_key_here
-./scripts/record_demo.sh
-```
 
 That command prepares the same sample file used by the tests and records the
 session defined in [demo.tape](/Users/isaiahbingham/project/groq-o-clock-personal-python-chatbot-project/demo.tape).
 The output overwrites `demo.gif`, which is already embedded at the top of this
 README.
 
-## Test Projects
+test projects
 
-This example is interesting because it shows the chatbot summarizing a project
-without any manual slash commands.
+
 
 ```text
 $ cd test_projects/webpage
@@ -118,10 +101,9 @@ chat> what does this project do?
 This is a personal portfolio website built with HTML and CSS.
 ```
 
-This works because the tool reads project files and summarizes them directly.
+-tool reads project files and summarizes them directly.
 
-This example is interesting because it shows the chatbot using search across the
-codebase to answer a code question.
+
 
 ```text
 $ cd test_projects/markdown_compiler
@@ -130,10 +112,10 @@ chat> does this project use regular expressions?
 No, I grepped all .py files and found no imports of the `re` module.
 ```
 
-This works because the tool can automatically grep project files before it
+-tool can automatically grep project files before it
 answers.
 
-This example is interesting because it shows the chatbot reading project files
+- chatbot reading project files
 to give a higher-level summary.
 
 ```text
@@ -143,5 +125,5 @@ chat> tell me about this project
 This project scrapes eBay listings and extracts product titles and prices using BeautifulSoup.
 ```
 
-This works because the tool can inspect the README and source files before
+- tool can inspect the README and source files before
 responding.
