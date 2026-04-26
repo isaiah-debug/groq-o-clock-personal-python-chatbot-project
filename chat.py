@@ -137,22 +137,29 @@ def build_client(provider, timeout=30):
 def _doctest_result_has_failures(content):
     """Return True if a doctest tool result string reports failures.
 
-    >>> _doctest_result_has_failures('1 item had failures.')
+    >>> _doctest_result_has_failures('1 item had failures:')
     True
-    >>> _doctest_result_has_failures('Failed example')
+    >>> _doctest_result_has_failures('Failed example:')
     True
     >>> _doctest_result_has_failures('5 items passed all tests')
     False
     >>> _doctest_result_has_failures('error: unsafe path')
     False
+    >>> _doctest_result_has_failures("Trying:\\n    'Failed example:'\\nok\\n")
+    False
     >>> _doctest_result_has_failures('')
     False
     """
-    return (
-        "items had failures" in content
-        or "item had failures" in content
-        or "Failed example" in content
-    )
+    for line in content.splitlines():
+        if line.startswith("***Test Failed***"):
+            return True
+        if line == "Failed example:":
+            return True
+        if line.endswith(" item had failures:"):
+            return True
+        if line.endswith(" items had failures:"):
+            return True
+    return False
 
 
 class Chat:
@@ -462,7 +469,7 @@ class Chat:
         >>> chat._last_doctests_failed()
         False
         >>> failed = {'role': 'tool', 'name': 'doctests',
-        ...           'content': '1 item had failures.'}
+        ...           'content': '1 item had failures:'}
         >>> chat.messages.append(failed)
         >>> chat._last_doctests_failed()
         True
@@ -633,24 +640,33 @@ class SlashCompleter:
         return None
 
 
-def configure_readline():
+def configure_readline(readline_module=None):
     """Install tab completion for slash commands when readline exists.
 
-    >>> isinstance(configure_readline(), bool)
+    >>> class FakeReadline:
+    ...     def parse_and_bind(self, text):
+    ...         self.bound = text
+    ...     def set_completer(self, completer):
+    ...         self.completer = completer
+    >>> fake = FakeReadline()
+    >>> configure_readline(fake)
     True
+    >>> fake.bound
+    'tab: complete'
     """
-    try:
-        import readline
-    except ImportError:
-        return False
+    if readline_module is None:
+        try:
+            import readline as readline_module
+        except ImportError:
+            return False
 
     completer = SlashCompleter(sorted(set(TOOL_FUNCTIONS) | SPECIAL_TOOLS))
-    readline.parse_and_bind("tab: complete")
-    readline.set_completer(completer.complete)
+    readline_module.parse_and_bind("tab: complete")
+    readline_module.set_completer(completer.complete)
     return True
 
 
-def repl(chat=None, temperature=0.0):
+def repl(chat=None, temperature=0.0, enable_readline=True):
     """Run the interactive command line loop.
 
     >>> import contextlib, io, sys
@@ -658,12 +674,13 @@ def repl(chat=None, temperature=0.0):
     >>> sys.stdin = io.StringIO('/calculate 2 + 2\\n/exit\\n')
     >>> buf = io.StringIO()
     >>> with contextlib.redirect_stdout(buf):
-    ...     repl()
+    ...     repl(enable_readline=False)
     >>> sys.stdin = old_stdin
     >>> '4' in buf.getvalue()
     True
     """
-    _ = configure_readline()
+    if enable_readline:
+        _ = configure_readline()
     chat = chat or Chat()
     try:
         while True:

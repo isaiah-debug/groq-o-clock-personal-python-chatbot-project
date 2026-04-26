@@ -57,9 +57,9 @@ def format_transcript(messages):
 def build_compact_messages(system_prompt, summary):
     """Build the replacement message list used after compaction.
 
-    >>> build_compact_messages('Follow instructions.', 'Work on README.')
-    [{'role': 'system', 'content': 'Follow instructions.\\n\\n'
-    ...  'Conversation summary:\\nWork on README.'}]
+    >>> result = build_compact_messages('Follow instructions.', 'README')
+    >>> result[0]['content']
+    'Follow instructions.\\n\\nConversation summary:\\nREADME'
     """
     return [{
         "role": "system",
